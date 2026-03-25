@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Task Manager Pro</title>
+
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+body {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    min-height: 100vh;
+}
+
+/* FADE IN PAGE */
+body {
+    animation: fadeIn 1s ease-in;
+}
+@keyframes fadeIn {
+    from {opacity: 0;}
+    to {opacity: 1;}
+}
+
+.container {
+    width: 90%;
+    max-width: 900px;
+    margin: auto;
+    padding-top: 40px;
+}
+
+/* GLASS CARD */
+.glass {
+    background: rgba(255,255,255,0.1);
+    backdrop-filter: blur(12px);
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 20px;
+    color: white;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+
+    /* SLIDE UP ANIMATION */
+    transform: translateY(40px);
+    opacity: 0;
+    animation: slideUp 0.6s ease forwards;
+}
+
+.glass:nth-child(1) { animation-delay: 0.2s; }
+.glass:nth-child(2) { animation-delay: 0.4s; }
+.glass:nth-child(3) { animation-delay: 0.6s; }
+
+@keyframes slideUp {
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+h2 {
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+/* INPUT */
+input, select {
+    width: 100%;
+    padding: 10px;
+    margin-top: 10px;
+    border-radius: 8px;
+    border: none;
+    outline: none;
+    transition: 0.3s;
+}
+
+input:focus, select:focus {
+    transform: scale(1.02);
+}
+
+/* BUTTON */
+button {
+    width: 100%;
+    padding: 10px;
+    margin-top: 10px;
+    border: none;
+    border-radius: 8px;
+    background: #00c6ff;
+    color: white;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+button:hover {
+    transform: scale(1.05);
+    background: #0072ff;
+}
+
+/* TASK CARD */
+.task {
+    background: rgba(255,255,255,0.2);
+    padding: 10px;
+    border-radius: 10px;
+    margin-top: 10px;
+
+    /* ENTRY ANIMATION */
+    animation: fadeTask 0.5s ease;
+}
+
+@keyframes fadeTask {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.task:hover {
+    transform: scale(1.02);
+}
+
+.row {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 5px;
+}
+
+.delete {
+    background: #ff4b5c;
+    margin-top: 8px;
+}
+
+.delete:hover {
+    background: #ff0000;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <!-- LOGIN -->
+    <div class="glass">
+        <h2>🔐 Login</h2>
+        <input id="username" placeholder="Username">
+        <input id="password" type="password" placeholder="Password">
+        <button onclick="login()">Login</button>
+    </div>
+
+    <!-- ADD TASK -->
+    <div class="glass">
+        <h2>➕ Add Task</h2>
+        <input id="title" placeholder="Task title">
+        <input id="desc" placeholder="Description">
+
+        <select id="status">
+            <option>PENDING</option>
+            <option>COMPLETED</option>
+        </select>
+
+        <select id="priority">
+            <option>LOW</option>
+            <option>MEDIUM</option>
+            <option>HIGH</option>
+        </select>
+
+        <button onclick="addTask()">Add Task</button>
+    </div>
+
+    <!-- TASK LIST -->
+    <div class="glass">
+        <h2>📋 Your Tasks</h2>
+        <div id="taskList"></div>
+    </div>
+
+</div>
+
+<script>
+let token = "";
+
+// LOGIN
+function login() {
+    fetch("/auth/login", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+            username: username.value,
+            password: password.value
+        })
+    })
+    .then(res => res.text())
+    .then(data => {
+        token = data;
+        alert("Login Successful 🚀");
+        loadTasks();
+    });
+}
+
+// ADD TASK
+function addTask() {
+    fetch("/tasks", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + token
+        },
+        body: JSON.stringify({
+            title: title.value,
+            description: desc.value,
+            status: status.value,
+            priority: priority.value,
+            dueDate: "2026-04-10"
+        })
+    })
+    .then(() => loadTasks());
+}
+
+// LOAD TASKS
+function loadTasks() {
+    fetch("/tasks", {
+        headers: {"Authorization": "Bearer " + token}
+    })
+    .then(res => res.json())
+    .then(data => {
+        taskList.innerHTML = "";
+
+        data.forEach(task => {
+            taskList.innerHTML += `
+                <div class="task">
+                    <b>${task.title}</b>
+                    <div class="row">
+                        <span>${task.status}</span>
+                        <span>${task.priority}</span>
+                    </div>
+                    <p>${task.description}</p>
+                    <button class="delete" onclick="deleteTask(${task.id})">Delete</button>
+                </div>
+            `;
+        });
+    });
+}
+
+// DELETE
+function deleteTask(id) {
+    fetch("/tasks/" + id, {
+        method: "DELETE",
+        headers: {"Authorization": "Bearer " + token}
+    })
+    .then(() => loadTasks());
+}
+</script>
+
+</body>
+</html>
